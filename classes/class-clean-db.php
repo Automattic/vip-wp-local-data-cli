@@ -145,35 +145,27 @@ final class Clean_DB {
 		);
 	}
 
-	private function _delete_post_meta_batch( $posts, $meta_keys ) {
+	private function _delete_post_meta_batch( $post_ids ) {
 		global $wpdb;
-		$post_ids = array_map( function ( $post ) {
-			return $post->ID;
-		}, $posts );
 
-		if ( empty( $post_ids ) || empty( $meta_keys ) ) {
+		if ( empty( $post_ids ) ) {
 			return;
 		}
 
 		$post_placeholders     = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
-		$meta_key_placeholders = implode( ',', array_fill( 0, count( $meta_keys ), '%s' ) );
 
 		$query = "
 		DELETE pm
 		FROM {$wpdb->postmeta} AS pm
 		WHERE pm.post_id IN ($post_placeholders)
-		AND pm.meta_key IN ($meta_key_placeholders)
 	";
 
 		$args = array_merge( $post_ids, $meta_keys );
 		$wpdb->query( $wpdb->prepare( $query, $args ) );
 	}
 
-	private function _delete_object_term_relationships_batch( $posts, $taxonomies ) {
+	private function _delete_object_term_relationships_batch( $post_ids, $taxonomies ) {
 		global $wpdb;
-		$post_ids = array_map( function ( $post ) {
-			return $post->ID;
-		}, $posts );
 
 		if ( empty( $post_ids ) || empty( $taxonomies ) ) {
 			return;
@@ -194,12 +186,8 @@ final class Clean_DB {
 		$wpdb->query( $wpdb->prepare( $query, ...$args ) );
 	}
 
-	private function _get_object_taxonomies_batch( $posts ) {
+	private function _get_object_taxonomies_batch( $post_ids ) {
 		global $wpdb;
-		$post_ids = array_map(
-			fn( $post ) => $post->ID,
-			$posts
-		);
 		if ( empty( $post_ids ) ) {
 			return [];
 		}
@@ -219,8 +207,41 @@ final class Clean_DB {
 
 	}
 
-	private function _delete_comments_batch( $posts ) {
+	private function _delete_comments_meta_batch( $comments ) {
+		global $wpdb;
+		$comment_ids = array_map( function ( $comment ) {
+			return $comment->comment_ID;
+		}, $comments );
 
+		if ( empty( $comment_ids ) ) {
+			return;
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $comment_ids ), '%d' ) );
+
+		$query = $wpdb->prepare(
+			"DELETE FROM {$wpdb->commentmeta} WHERE comment_id IN ($placeholders)",
+			$comment_ids
+		);
+
+		$wpdb->query( $query );
+	}
+
+	private function _delete_comments_batch( $post_ids ) {
+		global $wpdb;
+
+		if ( empty( $post_ids ) ) {
+			return;
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+
+		$query = $wpdb->prepare(
+			"DELETE FROM {$wpdb->comments} WHERE comment_post_ID IN ($placeholders)",
+			$post_ids
+		);
+
+		$wpdb->query( $query );
 	}
 
 	private function _delete_posts_batch_by_ids( $ids_to_delete ) {
@@ -247,18 +268,26 @@ final class Clean_DB {
 	 *
 	 * @param WP_Post[] $id_to_delete The ID of the post to delete.
 	 *
-	 * @return WP_Post|false The deleted post object on success, false on failure.
 	 */
 	private function _delete_posts_batch( $posts ) {
 		// based on wp_delete_post();
 		global $wpdb;
 
+		if (empty($posts)) {
+			return [];
+		}
+
 		// we'll skip pre_delete_post
 		// we also DON'T need to call wp_delete_attachment, as that method is mostly similar to post deletion
 
-		$taxonomies      = $this->_get_object_taxonomies_batch( $posts );
+		$post_ids = array_map(
+			fn( $post ) => $post->ID,
+			$posts
+		);
+
+		$taxonomies      = $this->_get_object_taxonomies_batch( $post_ids );
 		$base_taxonomies = [ 'category', 'post_tag' ];
-		$this->_delete_object_term_relationships_batch( $posts, array_merge( $taxonomies, $base_taxonomies ) );
+		$this->_delete_object_term_relationships_batch( $post_ids, array_merge( $taxonomies, $base_taxonomies ) );
 
 		$parent_to_children_posts_dict = $this->_get_parent_to_children_posts_dict_batch( $posts, [ 'attachment' ] );
 
@@ -266,16 +295,13 @@ final class Clean_DB {
 		$this->_reparent_children_to_parent_ancestors( $parent_to_children_posts_dict );
 
 		// TODO: Collect IDs first, then delete in one go!
-		$revisions = $this->_get_post_revisions_batch( $posts );
+		$revisions = $this->_get_post_revisions_batch( $post_ids );
 
-		$this->_delete_posts_batch( array_map( fn( $revision ) => $revision->ID, $revisions ) );
+		$this->_delete_posts_batch($revisions);
 
-		$this->_delete_comments_batch( $posts );
+		$this->_delete_comments_batch( $post_ids );
 
-		$this->_delete_post_meta_batch( $posts, [
-			'_wp_trash_meta_status',
-			'_wp_trash_meta_time'
-		] );
+		$this->_delete_post_meta_batch( $post_ids );
 
 		$delete_posts_placeholder = implode( ',', array_fill( 0, count( $posts ), '%d' ) );
 
@@ -451,6 +477,12 @@ final class Clean_DB {
 	private function _reparent_children_to_parent_ancestors( array $parent_to_children_posts_dict ) {
 		global $wpdb;
 		$parent_post_ids              = array_keys( $parent_to_children_posts_dict );
+
+
+		if (empty($parent_post_ids)) {
+			return;
+		}
+
 		$parent_post_ids_placeholders = implode( ',', array_fill( 0, count( $parent_post_ids ), '%d' ) );
 		$parent_posts                 = $wpdb->get_results(
 			$wpdb->prepare(
@@ -470,6 +502,11 @@ final class Clean_DB {
 		$grand_parent_post_ids = array_map( function ( $post ) {
 			return $post->post_parent;
 		}, $parent_posts );
+
+		if (empty($grand_parent_post_ids)) {
+			return;
+		}
+
 
 		$grand_parent_post_ids_placeholders = implode( ',', array_fill( 0, count( $grand_parent_post_ids ), '%d' ) );
 
@@ -519,11 +556,8 @@ final class Clean_DB {
 		}
 	}
 
-	private function _get_post_revisions_batch( array $posts ) {
+	private function _get_post_revisions_batch( array $post_ids ) {
 		global $wpdb;
-		$post_ids = array_map( function ( $post ) {
-			return $post->ID;
-		}, $posts );
 
 		if ( empty( $post_ids ) ) {
 			return [];
