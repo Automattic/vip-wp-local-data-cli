@@ -110,33 +110,11 @@ final class Clean_DB {
 	}
 
 	/**
-	 * Delete a post by ID.
-	 *
-	 * @param int $id_to_delete The ID of the post to delete.
-	 *
-	 * @return WP_Post|false The deleted post object on success, false on failure.
-	 */
-	private function _delete_post( $id_to_delete ) {
-		$deleted = wp_delete_post( $id_to_delete, true );
-
-		if ( ! $deleted instanceof WP_Post ) {
-			WP_CLI::warning(
-				sprintf(
-					'     - Failed to delete post ID `%1$d`',
-					$id_to_delete
-				)
-			);
-		}
-
-		return $deleted;
-	}
-
-	/**
 	 * @param $post_rows
 	 *
 	 * @return WP_Post[]
 	 */
-	private function _get_posts_batch( $post_rows ) {
+	private function _get_posts_batch( $post_rows ): array {
 		return array_map(
 			function ( $post_row ) {
 				return get_post( $post_row );
@@ -145,7 +123,7 @@ final class Clean_DB {
 		);
 	}
 
-	private function _delete_post_meta_batch( $post_ids ) {
+	private function _delete_post_meta_batch( $post_ids ): void {
 		global $wpdb;
 
 		if ( empty( $post_ids ) ) {
@@ -160,11 +138,10 @@ final class Clean_DB {
 		WHERE pm.post_id IN ($post_placeholders)
 	";
 
-		$args = array_merge( $post_ids, $meta_keys );
-		$wpdb->query( $wpdb->prepare( $query, $args ) );
+		$wpdb->query( $wpdb->prepare( $query, $post_ids ) );
 	}
 
-	private function _delete_object_term_relationships_batch( $post_ids, $taxonomies ) {
+	private function _delete_object_term_relationships_batch( $post_ids, $taxonomies ): void {
 		global $wpdb;
 
 		if ( empty( $post_ids ) || empty( $taxonomies ) ) {
@@ -186,7 +163,7 @@ final class Clean_DB {
 		$wpdb->query( $wpdb->prepare( $query, ...$args ) );
 	}
 
-	private function _get_object_taxonomies_batch( $post_ids ) {
+	private function _get_object_taxonomies_batch( $post_ids ): array {
 		global $wpdb;
 		if ( empty( $post_ids ) ) {
 			return [];
@@ -203,15 +180,8 @@ final class Clean_DB {
 		return $wpdb->get_col( $query );
 	}
 
-	private function _delete_metadata_batch( $posts ) {
-
-	}
-
-	private function _delete_comments_meta_batch( $comments ) {
+	private function _delete_comments_meta_batch( $comment_ids ): void {
 		global $wpdb;
-		$comment_ids = array_map( function ( $comment ) {
-			return $comment->comment_ID;
-		}, $comments );
 
 		if ( empty( $comment_ids ) ) {
 			return;
@@ -227,12 +197,21 @@ final class Clean_DB {
 		$wpdb->query( $query );
 	}
 
-	private function _delete_comments_batch( $post_ids ) {
+	private function _delete_comments_batch( $post_ids ): void {
 		global $wpdb;
 
 		if ( empty( $post_ids ) ) {
 			return;
 		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
+
+		$comment_ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT comment_ID FROM {$wpdb->comments} WHERE comment_post_ID IN ($placeholders)",
+			$post_ids
+		) );
+
+		$this->_delete_comments_meta_batch($comment_ids);
 
 		$placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
 
@@ -244,7 +223,7 @@ final class Clean_DB {
 		$wpdb->query( $query );
 	}
 
-	private function _delete_posts_batch_by_ids( $ids_to_delete ) {
+	private function _delete_posts_batch_by_ids( $ids_to_delete ): void {
 		global $wpdb;
 
 		$post_rows = $wpdb->get_results( $wpdb->prepare(
@@ -260,21 +239,15 @@ final class Clean_DB {
 
 		$posts = $this->_get_posts_batch( $post_rows );
 
-		return $this->_delete_posts_batch( $posts );
+		$this->_delete_posts_batch( $posts );
 	}
 
-	/**
-	 * Delete a post by ID.
-	 *
-	 * @param WP_Post[] $id_to_delete The ID of the post to delete.
-	 *
-	 */
-	private function _delete_posts_batch( $posts ) {
+	private function _delete_posts_batch( $posts ): void {
 		// based on wp_delete_post();
 		global $wpdb;
 
 		if (empty($posts)) {
-			return [];
+			return;
 		}
 
 		// we'll skip pre_delete_post
@@ -289,7 +262,7 @@ final class Clean_DB {
 		$base_taxonomies = [ 'category', 'post_tag' ];
 		$this->_delete_object_term_relationships_batch( $post_ids, array_merge( $taxonomies, $base_taxonomies ) );
 
-		$parent_to_children_posts_dict = $this->_get_parent_to_children_posts_dict_batch( $posts, [ 'attachment' ] );
+		$parent_to_children_posts_dict = $this->_get_parent_to_children_posts_dict_batch( $posts );
 
 		// TODO: Maybe delete children instead?
 		$this->_reparent_children_to_parent_ancestors( $parent_to_children_posts_dict );
@@ -310,6 +283,7 @@ final class Clean_DB {
 		}, $posts ) );
 
 		$wpdb->query( $delete_query );
+
 	}
 
 	/**
@@ -443,7 +417,8 @@ final class Clean_DB {
 		delete_option( 'new_admin_email' );
 	}
 
-	private function _get_parent_to_children_posts_dict_batch( array $posts, $additional_post_types ) {
+	private function _get_parent_to_children_posts_dict_batch( array $posts ): array {
+		$additional_post_types = [ 'attachment' ];
 		global $wpdb;
 		$post_ids = array_map( function ( $post ) {
 			return $post->ID;
@@ -474,7 +449,7 @@ final class Clean_DB {
 		return $parent_post_id_to_posts;
 	}
 
-	private function _reparent_children_to_parent_ancestors( array $parent_to_children_posts_dict ) {
+	private function _reparent_children_to_parent_ancestors( array $parent_to_children_posts_dict ): void {
 		global $wpdb;
 		$parent_post_ids              = array_keys( $parent_to_children_posts_dict );
 
@@ -556,7 +531,7 @@ final class Clean_DB {
 		}
 	}
 
-	private function _get_post_revisions_batch( array $post_ids ) {
+	private function _get_post_revisions_batch( array $post_ids ): array {
 		global $wpdb;
 
 		if ( empty( $post_ids ) ) {
