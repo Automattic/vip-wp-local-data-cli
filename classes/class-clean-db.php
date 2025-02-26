@@ -122,7 +122,7 @@ final class Clean_DB {
 	 * @param int $id_to_delete The ID of the post to delete.
 	 * @return WP_Post|false The deleted post object on success, false on failure.
 	 */
-	private function _delete_post(int $id_to_delete) {
+	private function _delete_post($id_to_delete) {
 		$deleted = wp_delete_post($id_to_delete, true);
 
 		if (! $deleted instanceof WP_Post) {
