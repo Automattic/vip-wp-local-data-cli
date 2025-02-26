@@ -254,8 +254,6 @@ final class Init {
 	private function _handle_error( Throwable $throwable ): void {
 		global $wpdb;
 
-		$wpdb->query( 'DROP DATABASE ' . DB_NAME );
-
 		WP_CLI::error( $throwable->getMessage() );
 	}
 }
