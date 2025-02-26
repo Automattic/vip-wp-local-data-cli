@@ -9,7 +9,6 @@ declare( strict_types = 1 );
 
 namespace PMC\WP_Local_Data_CLI\Query_Args;
 
-use PMC\Gallery\Defaults as PMC_Gallery;
 use PMC\WP_Local_Data_CLI\Query_Args;
 
 /**
@@ -34,43 +33,5 @@ class Post extends Query_Args {
 		];
 	}
 
-	/**
-	 * Process dependent data associated with a given ID, such as a post's
-	 * thumbnail.
-	 *
-	 * If post type has no dependent data, set `static::$find_linked_ids` to
-	 * false to skip this method.
-	 *
-	 * @param int    $id        Post ID.
-	 * @param string $post_type Post type of given ID.
-	 * @return array
-	 */
-	// Declaration must be compatible with overridden method.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-	public static function get_linked_ids( int $id, string $post_type ): array {
-		$ids = [];
-
-		static::_add_thumbnail_id( $ids, $id );
-
-		$linked_gallery_meta = get_post_meta(
-			$id,
-			'pmc-gallery-linked-gallery',
-			true
-		);
-		if ( $linked_gallery_meta ) {
-			if ( is_string( $linked_gallery_meta ) ) {
-				$linked_gallery_meta = json_decode(
-					$linked_gallery_meta,
-					true
-				);
-			}
-
-			$ids[] = [
-				'ID'        => (int) $linked_gallery_meta['id'],
-				'post_type' => PMC_Gallery::NAME,
-			];
-		}
-
-		return $ids;
-	}
+	public static bool $find_linked_ids = false;
 }

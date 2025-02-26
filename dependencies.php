@@ -6,11 +6,3 @@
  */
 
 declare( strict_types = 1 );
-
-load_pmc_plugins(
-	[
-		'pmc-plugins' => [
-			'pmc-wp-cli',
-		],
-	],
-);

@@ -13,7 +13,6 @@ declare( strict_types = 1 );
 
 namespace PMC\WP_Local_Data_CLI;
 
-use PMC_WP_CLI;
 use Throwable;
 use WP_CLI;
 
@@ -22,7 +21,7 @@ use function WP_CLI\Utils\get_flag_value;
 /**
  * Class Init.
  */
-final class Init extends PMC_WP_CLI {
+final class Init {
 	/**
 	 * WP-CLI command slug.
 	 */
@@ -219,36 +218,9 @@ final class Init extends PMC_WP_CLI {
 			new Query_Args\Nav_Menu_Item(),
 			new Query_Args\OEmbed_Cache(),
 			new Query_Args\Page(),
-			new Query_Args\PMC_Ads(),
-			new Query_Args\PMC_Amzn_Onsite(),
-			new Query_Args\PMC_Attachments(),
-			new Query_Args\PMC_Buy_Now_Block(),
-			new Query_Args\PMC_Buy_Now_Shortcode(),
-			new Query_Args\PMC_Carousel(),
-			new Query_Args\PMC_Custom_Feed(),
-			new Query_Args\PMC_Ecomm(),
-			new Query_Args\PMC_Events(),
-			new Query_Args\PMC_FAQ(),
-			new Query_Args\PMC_Gallery(),
-			new Query_Args\PMC_Harmony_Companion(),
-			new Query_Args\PMC_Hub(),
-			new Query_Args\PMC_List(),
-			new Query_Args\PMC_Not_For_Publication(),
-			new Query_Args\PMC_Nova_Homepage(),
-			new Query_Args\PMC_Profiles(),
-			new Query_Args\PMC_Profiles_Landing_Page(),
-			// new Query_Args\PMC_Publication_Issue(),
-			new Query_Args\PMC_Reviews(),
-			new Query_Args\PMC_Store_Products(),
-			new Query_Args\PMC_Templatized_Widgets(),
-			new Query_Args\PMC_Term_Content(),
-			new Query_Args\PMC_TOC(),
-			new Query_Args\PMC_Top_Video(),
-			new Query_Args\PMC_Touts(),
 			new Query_Args\Post(),
 			new Query_Args\Safe_Redirect_Manager(),
 			new Query_Args\WPCOM_Legacy_Redirector(),
-			new Query_Args\Zoninator(),
 		];
 
 		/**

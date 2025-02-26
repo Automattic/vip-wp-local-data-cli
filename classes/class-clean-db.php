@@ -93,7 +93,7 @@ final class Clean_DB {
 			);
 
 			foreach ( $ids as $id_to_delete ) {
-				$deleted = wp_delete_post( $id_to_delete, true );
+				$deleted = $this->_delete_post($id_to_delete);
 
 				if ( ! $deleted instanceof WP_Post ) {
 					WP_CLI::warning(
@@ -114,6 +114,27 @@ final class Clean_DB {
 		$this->_defer_counts( false );
 
 		WP_CLI::line( ' * Finished deleting posts.' );
+	}
+
+	/**
+	 * Delete a post by ID.
+	 *
+	 * @param int $id_to_delete The ID of the post to delete.
+	 * @return WP_Post|false The deleted post object on success, false on failure.
+	 */
+	private function _delete_post(int $id_to_delete) {
+		$deleted = wp_delete_post($id_to_delete, true);
+
+		if (! $deleted instanceof WP_Post) {
+			WP_CLI::warning(
+				sprintf(
+					'     - Failed to delete post ID `%1$d`',
+					$id_to_delete
+				)
+			);
+		}
+
+		return $deleted;
 	}
 
 	/**
