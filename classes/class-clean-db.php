@@ -311,7 +311,7 @@ final class Clean_DB {
 		return $wpdb->prepare(
 		// Intentionally using complex placeholders to prevent incorrect quoting of table names.
 		// phpcs:ignore WordPress.DB.PreparedSQLPlaceholders.UnquotedComplexPlaceholder
-			'SELECT posts.ID FROM `%1$s` as posts LEFT JOIN `%2$s` AS retained ON `%1$s`.ID = retained.ID WHERE retained.ID IS NULL AND posts.post_type != \'revision\' ORDER BY posts.ID ASC LIMIT %3$d,%4$d',
+			'SELECT posts.ID FROM `%1$s` as posts LEFT JOIN `%2$s` AS retained ON posts.ID = retained.ID WHERE retained.ID IS NULL AND posts.post_type != \'revision\' ORDER BY posts.ID ASC LIMIT %3$d,%4$d',
 			$wpdb->posts,
 			Init::TABLE_NAME,
 			0,
