@@ -174,7 +174,7 @@ final class Clean_DB {
 			"SELECT DISTINCT tt.taxonomy FROM {$wpdb->term_relationships} AS tr
      INNER JOIN {$wpdb->term_taxonomy} AS tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
      WHERE tr.object_id IN ($placeholders)",
-			...$post_ids
+			$post_ids
 		);
 
 		return $wpdb->get_col( $query );
@@ -226,9 +226,11 @@ final class Clean_DB {
 	private function _delete_posts_batch_by_ids( $ids_to_delete ): void {
 		global $wpdb;
 
+		$placeholders = implode( ',', array_fill( 0, count( $ids_to_delete ), '%d' ) );
+
 		$post_rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT * FROM `{$wpdb->posts}` WHERE ID IN (%s)",
-			implode( ',', $ids_to_delete )
+			"SELECT * FROM `{$wpdb->posts}` WHERE ID IN ($placeholders)",
+			$ids_to_delete
 		) );
 
 		if ( empty( $post_rows ) ) {
