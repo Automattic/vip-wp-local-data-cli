@@ -39,24 +39,24 @@ final class Nav_Menu_Item extends Query_Args {
 	 */
 	// Declaration must be compatible with overridden method.
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-	public static function get_linked_ids( int $id, string $post_type ): array {
-		$ids = [];
-
-		$menu_item_type = get_post_meta( $id, '_menu_item_type', true );
-
-		if ( 'post_type' !== $menu_item_type ) {
-			return $ids;
-		}
-
-		$ids[] = [
-			'ID'        => (int) get_post_meta(
-				$id,
-				'_menu_item_object_id',
-				true
-			),
-			'post_type' => get_post_type( $id ),
-		];
-
-		return $ids;
-	}
+//	public static function get_linked_ids( int $id, string $post_type ): array {
+//		$ids = [];
+//
+//		$menu_item_type = get_post_meta( $id, '_menu_item_type', true );
+//
+//		if ( 'post_type' !== $menu_item_type ) {
+//			return $ids;
+//		}
+//
+//		$ids[] = [
+//			'ID'        => (int) get_post_meta(
+//				$id,
+//				'_menu_item_object_id',
+//				true
+//			),
+//			'post_type' => get_post_type( $id ),
+//		];
+//
+//		return $ids;
+//	}
 }

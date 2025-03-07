@@ -12,6 +12,8 @@ declare( strict_types = 1 );
 
 namespace PMC\WP_Local_Data_CLI;
 
+use WP_Post;
+
 /**
  * Class Query_Args.
  */
@@ -79,13 +81,12 @@ abstract class Query_Args {
 	 * If post type has no dependent data, set `static::$find_linked_ids` to
 	 * false to skip this method.
 	 *
-	 * @param int    $id        Post ID.
-	 * @param string $post_type Post type of given ID.
-	 * @return array
+	 * @param WP_Post[] $posts
+	 * @return WP_Post[]
 	 */
 	// Parameters are provided for implementing classes.
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-	public static function get_linked_ids( int $id, string $post_type ): array {
+	public static function get_linked_ids( array $posts ): array {
 		return [];
 	}
 

@@ -135,11 +135,15 @@ final class Gutenberg {
 
 	/**
 	 * Gutenberg constructor.
-	 *
-	 * @param int $id Post ID to check for block attributes.
 	 */
-	public function __construct( int $id ) {
-		$this->_gather_ids( $id );
+	public function __construct() {
+	}
+
+	public static function create_with_content($post_content) {
+		$instance = new self();
+		$instance->_gather_ids_with_post_content($post_content);
+
+		return $instance;
 	}
 
 	/**
@@ -148,6 +152,23 @@ final class Gutenberg {
 	 * @return array
 	 */
 	public function get_ids(): array {
+		$ids_to_insert = [];
+
+		$ids = array_filter(
+			array_unique(
+				array_merge( ...$this->_ids )
+			)
+		);
+
+		return $ids;
+	}
+
+	/**
+	 * Retrieve IDs gathered from block attributes with post types
+	 *
+	 * @return array
+	 */
+	public function get_ids_with_post_types(): array {
 		$ids_to_insert = [];
 
 		$ids = array_filter(
@@ -178,6 +199,20 @@ final class Gutenberg {
 	 */
 	private function _gather_ids( int $id ): void {
 		$block_data = parse_blocks( get_post_field( 'post_content', $id ) );
+
+		foreach ( $block_data as $block ) {
+			$this->_process_block( $block );
+		}
+	}
+
+	/**
+	 * Parse blocks from content and process result.
+	 *
+	 * @param int $id Post ID to process.
+	 * @return void
+	 */
+	private function _gather_ids_with_post_content( $post_content ): void {
+		$block_data = parse_blocks( $post_content );
 
 		foreach ( $block_data as $block ) {
 			$this->_process_block( $block );

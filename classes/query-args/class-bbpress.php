@@ -61,23 +61,23 @@ final class bbPress extends Query_Args {
 	 */
 	// Declaration must be compatible with overridden method.
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-	public static function get_linked_ids( int $id, string $post_type ): array {
-		$ids = [];
-
-		$ancestors = array_filter(
-			[
-				(int) get_post_meta( $id, '_bbp_topic_id', true ),
-				(int) get_post_meta( $id, '_bbp_forum_id', true ),
-			]
-		);
-
-		foreach ( $ancestors as $ancestor ) {
-			$ids[] = [
-				'ID'        => $ancestor,
-				'post_type' => get_post_type( $ancestor ),
-			];
-		}
-
-		return $ids;
-	}
+//	public static function get_linked_ids( int $id, string $post_type ): array {
+//		$ids = [];
+//
+//		$ancestors = array_filter(
+//			[
+//				(int) get_post_meta( $id, '_bbp_topic_id', true ),
+//				(int) get_post_meta( $id, '_bbp_forum_id', true ),
+//			]
+//		);
+//
+//		foreach ( $ancestors as $ancestor ) {
+//			$ids[] = [
+//				'ID'        => $ancestor,
+//				'post_type' => get_post_type( $ancestor ),
+//			];
+//		}
+//
+//		return $ids;
+//	}
 }

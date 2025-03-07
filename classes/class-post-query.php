@@ -6,6 +6,8 @@ namespace PMC\WP_Local_Data_CLI;
 
 // TODO: Change to a singleton :)
 
+use WP_Post;
+
 final class Post_Query {
 
 
@@ -14,7 +16,7 @@ final class Post_Query {
 	 *
 	 * @return WP_Post[]
 	 */
-	public static function get_posts_batch( $post_rows ): array {
+	private static function _transform_post_rows_as_wp_post( $post_rows ): array {
 		return array_map(
 			function ( $post_row ) {
 				return get_post( $post_row );
@@ -123,7 +125,7 @@ final class Post_Query {
 		$wpdb->query( $query );
 	}
 
-	public static function delete_posts_batch( $posts, \PMC\WP_Local_Data_CLI\Clean_DB $instance ): void {
+	public static function delete_posts_batch( $posts ): void {
 		// based on wp_delete_post();
 		global $wpdb;
 
@@ -148,10 +150,11 @@ final class Post_Query {
 		// TODO: Maybe delete children instead?
 		self::_reparent_children_to_parent_ancestors( $parent_to_children_posts_dict );
 
-		// TODO: Collect IDs first, then delete in one go!
 		$revisions = self::_get_post_revisions_batch( $post_ids );
 
-		Post_Query::delete_posts_batch( $revisions, $instance );
+		// TODO: Collect IDs first instead of recursing, then delete in one go!
+		// recursion
+		Post_Query::delete_posts_batch( $revisions );
 
 		Post_Query::_delete_comments_batch( $post_ids );
 
@@ -190,28 +193,27 @@ final class Post_Query {
 			array_merge( $post_ids, $post_types )
 		);
 
-		$posts                   = $wpdb->get_results( $query );
+		$children_post_rows                   = $wpdb->get_results( $query );
 		$parent_post_id_to_posts = [];
-		foreach ( $posts as $post ) {
+		foreach ( $children_post_rows as $row ) {
+			$post = get_post($row);
 			$parent_post_id_to_posts[ $post->post_parent ][] = $post;
 		}
 
 		return $parent_post_id_to_posts;
 	}
 
-	private static function _reparent_children_to_parent_ancestors( array $parent_to_children_posts_dict ): void {
+	private static function _build_post_dictionary($post_ids) {
 		global $wpdb;
-		$parent_post_ids = array_keys( $parent_to_children_posts_dict );
-
-		if ( empty( $parent_post_ids ) ) {
-			return;
+		if ( empty( $post_ids ) ) {
+			return [];
 		}
 
-		$parent_post_ids_placeholders = implode( ',', array_fill( 0, count( $parent_post_ids ), '%d' ) );
+		$parent_post_ids_placeholders = implode( ',', array_fill( 0, count( $post_ids ), '%d' ) );
 		$parent_posts                 = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT * FROM {$wpdb->posts} WHERE ID IN ($parent_post_ids_placeholders)",
-				$parent_post_ids )
+				$post_ids )
 		);
 
 		$parent_posts_dict = [];
@@ -223,31 +225,24 @@ final class Post_Query {
 			$parent_posts_dict[ $parent_post->ID ] = get_post( $parent_post );
 		}
 
+		return $parent_posts_dict;
+	}
+
+	private static function _reparent_children_to_parent_ancestors( array $parent_to_children_posts_dict ): void {
+		global $wpdb;
+		$parent_post_ids = array_keys( $parent_to_children_posts_dict );
+
+		$parent_posts_dict = self::_build_post_dictionary($parent_post_ids);
+
 		$grand_parent_post_ids = array_map( function ( $post ) {
 			return $post->post_parent;
-		}, $parent_posts );
+		}, array_values($parent_posts_dict) );
 
 		if ( empty( $grand_parent_post_ids ) ) {
 			return;
 		}
 
-		$grand_parent_post_ids_placeholders = implode( ',', array_fill( 0, count( $grand_parent_post_ids ), '%d' ) );
-
-		$grand_parent_posts = $wpdb->get_results(
-			$wpdb->prepare(
-				"SELECT * FROM {$wpdb->posts} WHERE ID IN ($grand_parent_post_ids_placeholders)",
-				$grand_parent_post_ids_placeholders
-			)
-		);
-
-		$grand_parent_posts_dict = [];
-
-		foreach ( $grand_parent_posts as $grand_parent_post ) {
-			if ( $grand_parent_posts_dict[ $grand_parent_post->ID ] ) {
-				continue;
-			}
-			$grand_parent_posts_dict[ $grand_parent_post->ID ] = get_post( $grand_parent_post );
-		}
+		$grand_parent_post_dictionary = self::_build_post_dictionary($grand_parent_post_ids);
 
 		foreach ( $parent_to_children_posts_dict as $parent_post_id => $children_posts ) {
 			$parent_post = $parent_posts_dict[ $parent_post_id ];
@@ -256,7 +251,7 @@ final class Post_Query {
 				continue;
 			}
 
-			$grand_parent_post = $grand_parent_posts_dict[ $parent_post->post_parent ];
+			$grand_parent_post = $grand_parent_post_dictionary[ $parent_post->post_parent ];
 
 			if ( empty( $grand_parent_post ) ) {
 				continue;
@@ -300,7 +295,23 @@ final class Post_Query {
 		);
 	}
 
-	public static function delete_posts_batch_by_ids( $ids_to_delete, \PMC\WP_Local_Data_CLI\Clean_DB $instance ): void {
+	public static function get_posts($ids) {
+		global $wpdb;
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		$post_rows = $wpdb->get_results( $wpdb->prepare(
+			"SELECT * FROM `{$wpdb->posts}` WHERE ID IN ($placeholders)",
+			$ids
+		) );
+
+		if ( empty( $post_rows ) ) {
+			return [];
+		}
+
+		return self::_transform_post_rows_as_wp_post( $post_rows );
+	}
+
+	public static function delete_posts_batch_by_ids( $ids_to_delete ): void {
 		global $wpdb;
 
 		$placeholders = implode( ',', array_fill( 0, count( $ids_to_delete ), '%d' ) );
@@ -314,8 +325,8 @@ final class Post_Query {
 			return;
 		}
 
-		$posts = self::get_posts_batch( $post_rows );
+		$posts = self::_transform_post_rows_as_wp_post( $post_rows );
 
-		self::delete_posts_batch( $posts, $instance );
+		self::delete_posts_batch( $posts );
 	}
 }

@@ -13,6 +13,7 @@ declare( strict_types = 1 );
 namespace PMC\WP_Local_Data_CLI;
 
 use WP_CLI;
+use WP_Post;
 use WP_Query;
 
 /**
@@ -97,28 +98,33 @@ final class Query {
 		$query = new WP_Query( $query_args );
 
 		do {
-			foreach ( $query->posts as $id ) {
-				$this->_write_id_to_db( $id, get_post_type( $id ) );
+			$posts = Post_Query::get_posts($query->posts);
+			$this->_insert_posts_to_keep($posts);
 
-				if ( has_blocks( $id ) ) {
-					$ids = ( new Gutenberg( $id ) )->get_ids();
-					foreach ( $ids as $gutenberg_id ) {
-						$this->_write_id_to_db(
-							$gutenberg_id['ID'],
-							$gutenberg_id['post_type']
-						);
+			$guternberg_post_ids = array_unique(...array_merge(...array_map(
+				static function ( WP_Post $post ) {
+					if (has_blocks($post->post_content)) {
+						$ids = Gutenberg::create_with_content($post->post_content)
+							->get_ids();
+					} else {
+						return [];
 					}
-				}
+					return $post->ID;
+				},
+				$posts
+			)));
 
-				if ( null === $callback ) {
-					continue;
-				}
+			$gutenberg_posts = Post_Query::get_posts($guternberg_post_ids);
+			$this->_insert_posts_to_keep($gutenberg_posts);
 
-				foreach (
-					$callback( $id, get_post_type( $id ) ) as $entry
-				) {
-					$this->_write_id_to_db( $entry['ID'], $entry['post_type'] );
-				}
+			$linked_posts = [];
+
+			if ( !is_null($callback) ) {
+				$linked_posts = $callback($posts);
+			}
+
+			if (!empty($linked_posts)) {
+				$this->_insert_posts_to_keep($linked_posts);
 			}
 
 			$query_args['paged']++;
@@ -127,34 +133,26 @@ final class Query {
 	}
 
 	/**
-	 * Save to custom database table the post IDs to retain.
+	 * @param WP_Post[] $posts
 	 *
-	 * @param int    $id        Post ID.
-	 * @param string $post_type Post type.
 	 * @return void
 	 */
-	private function _write_id_to_db( int $id, string $post_type ): void {
+	private function _insert_posts_to_keep( array $posts ): void {
 		global $wpdb;
 
-		if ( 'any' === $post_type ) {
-			$post_type = get_post_type( $id );
-		}
-
-		// TODO: how do we end up with empty `post_type`?
-		if ( empty( $id ) || empty( $post_type ) ) {
-			return;
-		}
-
-		$wpdb->insert(
-			Init::TABLE_NAME,
-			[
-				'ID'        => $id,
-				'post_type' => $post_type,
-			],
-			[
-				'ID'        => '%d',
-				'post_type' => '%s',
-			]
+		$wpdb->query(
+			$wpdb->prepare(
+				"INSERT IGNORE INTO " . Init::TABLE_NAME . " (ID, post_type) VALUES %s",
+				implode(
+					', ',
+					array_map(
+						static function ( WP_Post $post ) use ( $wpdb ) {
+							return $wpdb->prepare( "(%d, %s)", $post->ID, $post->post_type );
+						},
+						$posts
+					)
+				)
+			)
 		);
 	}
 }
