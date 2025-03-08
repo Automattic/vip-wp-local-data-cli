@@ -164,48 +164,6 @@ final class Gutenberg {
 	}
 
 	/**
-	 * Retrieve IDs gathered from block attributes with post types
-	 *
-	 * @return array
-	 */
-	public function get_ids_with_post_types(): array {
-		$ids_to_insert = [];
-
-		$ids = array_filter(
-			array_unique(
-				array_merge( ...$this->_ids )
-			)
-		);
-		$ids = array_filter(
-			$ids,
-			static fn ( int $id ): bool => get_post( $id ) instanceof WP_Post
-		);
-
-		foreach ( $ids as $id ) {
-			$ids_to_insert[] = [
-				'ID'        => $id,
-				'post_type' => get_post_type( $id ),
-			];
-		}
-
-		return $ids_to_insert;
-	}
-
-	/**
-	 * Parse blocks from content and process result.
-	 *
-	 * @param int $id Post ID to process.
-	 * @return void
-	 */
-	private function _gather_ids( int $id ): void {
-		$block_data = parse_blocks( get_post_field( 'post_content', $id ) );
-
-		foreach ( $block_data as $block ) {
-			$this->_process_block( $block );
-		}
-	}
-
-	/**
 	 * Parse blocks from content and process result.
 	 *
 	 * @param int $id Post ID to process.
