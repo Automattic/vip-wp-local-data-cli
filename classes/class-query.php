@@ -151,6 +151,10 @@ final class Query {
 	private function _insert_posts_to_keep( array $posts ): void {
 		global $wpdb;
 
+		if (empty($posts)) {
+			return;
+		}
+
 		$placeholders = implode(
 			', ',
 			array_fill( 0, count( $posts ), '( %d, %s )' )
