@@ -5,7 +5,7 @@
  * @package pmc-wp-local-data-cli
  */
 
-declare( strict_types = 1 );
+declare( strict_types=1 );
 
 namespace PMC\WP_Local_Data_CLI\Query_Args;
 
@@ -52,32 +52,16 @@ final class bbPress extends Query_Args {
 		];
 	}
 
-	/**
-	 * Gather reply's parent objects.
-	 *
-	 * @param int    $id        Post ID.
-	 * @param string $post_type Post type of given ID.
-	 * @return array
-	 */
 	// Declaration must be compatible with overridden method.
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-//	public static function get_linked_ids( int $id, string $post_type ): array {
-//		$ids = [];
-//
-//		$ancestors = array_filter(
-//			[
-//				(int) get_post_meta( $id, '_bbp_topic_id', true ),
-//				(int) get_post_meta( $id, '_bbp_forum_id', true ),
-//			]
-//		);
-//
-//		foreach ( $ancestors as $ancestor ) {
-//			$ids[] = [
-//				'ID'        => $ancestor,
-//				'post_type' => get_post_type( $ancestor ),
-//			];
-//		}
-//
-//		return $ids;
-//	}
+	public static function get_linked_ids( $posts, $post_query ): array {
+		$ancestors = array_unique( array_filter( array_merge(
+					array_filter( $post_query->get_posts_meta( $posts, '_bbp_topic_id' ) ),
+					array_filter( $post_query->get_posts_meta( $posts, '_bbp_forum_id' ) )
+				)
+			)
+		);
+
+		return $post_query->get_posts($ancestors);
+	}
 }
