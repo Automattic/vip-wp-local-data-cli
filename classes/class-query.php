@@ -133,7 +133,7 @@ final class Query {
 			$linked_posts = [];
 
 			if ( ! is_null( $callback ) ) {
-				$linked_posts = $callback( $posts );
+				$linked_posts = $callback( $posts, $this->_post_query );
 			}
 
 			$this->_insert_posts_to_keep( array_merge( $posts, $gutenberg_posts, $linked_posts ) );
