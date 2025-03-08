@@ -23,10 +23,17 @@ use WPCOM_VIP_Cache_Manager;
  * Class Clean_DB.
  */
 final class Clean_DB {
+
+	/**
+	 * @var Post_Query
+	 */
+	private Post_Query $_post_query;
+
 	/**
 	 * Clean_DB constructor.
 	 */
 	public function __construct() {
+		$this->_post_query = new Post_Query();
 		$this->_delete_posts();
 		$this->_clean_users_table();
 		$this->_clean_usermeta_table();
@@ -92,7 +99,7 @@ final class Clean_DB {
 				)
 			);
 
-			Post_Query::delete_posts_batch_by_ids( $ids, $this );
+			$this->_post_query->delete_posts_batch_by_ids( $ids, $this );
 
 			$this->_free_resources();
 

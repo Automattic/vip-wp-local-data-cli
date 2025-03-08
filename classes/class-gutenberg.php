@@ -139,7 +139,7 @@ final class Gutenberg {
 	public function __construct() {
 	}
 
-	public static function create_with_content($post_content) {
+	public static function create_with_content($post_content): Gutenberg {
 		$instance = new self();
 		$instance->_gather_ids_with_post_content($post_content);
 
@@ -152,8 +152,6 @@ final class Gutenberg {
 	 * @return array
 	 */
 	public function get_ids(): array {
-		$ids_to_insert = [];
-
 		$ids = array_filter(
 			array_unique(
 				array_merge( ...$this->_ids )
@@ -166,7 +164,8 @@ final class Gutenberg {
 	/**
 	 * Parse blocks from content and process result.
 	 *
-	 * @param int $id Post ID to process.
+	 * @param string $post_content
+	 *
 	 * @return void
 	 */
 	private function _gather_ids_with_post_content( $post_content ): void {

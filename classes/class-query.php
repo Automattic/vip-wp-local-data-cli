@@ -24,7 +24,7 @@ final class Query {
 	/**
 	 * @var Post_Query
 	 */
-	private $post_query;
+	private Post_Query $_post_query;
 
 	/**
 	 * Query constructor.
@@ -37,8 +37,8 @@ final class Query {
 		Query_Args $instance,
 		bool $process_backfill = false
 	) {
-		$this->post_query = new Post_Query();
-		$args             = $process_backfill
+		$this->_post_query = new Post_Query();
+		$args              = $process_backfill
 			? $instance::get_query_args_for_backfill()
 			: $instance::get_query_args();
 
@@ -106,9 +106,9 @@ final class Query {
 		$query = new WP_Query( $query_args );
 
 		do {
-			$this->post_query->clear_cache();
+			$this->_post_query->clear_cache();
 			// posts are ids since we use ['fields' => 'ids']
-			$posts = $this->post_query->get_posts( $query->posts );
+			$posts = $this->_post_query->get_posts( $query->posts );
 
 			$guternberg_post_ids = array_merge( ...array_map(
 				static function ( WP_Post $post ) {
@@ -127,9 +127,7 @@ final class Query {
 			$gutenberg_posts = [];
 
 			if ( count( $guternberg_post_ids ) ) {
-				$gutenberg_posts = $this->post_query->get_posts( $guternberg_post_ids );
-				$this->_insert_posts_to_keep( $gutenberg_posts );
-
+				$gutenberg_posts = $this->_post_query->get_posts( $guternberg_post_ids );
 			}
 
 			$linked_posts = [];
