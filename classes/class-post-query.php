@@ -343,13 +343,8 @@ final class Post_Query {
 			}
 
 
-
-			$grand_parent_post = null;
-
 			// TODO: If there are no grandparents, do we reparent or we skip? Check WP code later
-			if (0 !== $parent_post->post_parent) {
-				$grand_parent_post = $grand_parent_post_dictionary[ $parent_post->post_parent ];
-			}
+			$grand_parent_post = $grand_parent_post_dictionary[ $parent_post->post_parent ] ?? null;;
 
 			if ( empty( $grand_parent_post ) ) {
 				continue;
