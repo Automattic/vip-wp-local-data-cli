@@ -99,7 +99,7 @@ final class Clean_DB {
 				)
 			);
 
-			$this->_post_query->delete_posts_batch_by_ids( $ids, $this );
+			$this->_post_query->delete_posts_batch_by_ids( $ids );
 
 			$this->_free_resources();
 
@@ -155,6 +155,7 @@ final class Clean_DB {
 	 * @return void
 	 */
 	private function _free_resources(): void {
+		$this->_post_query->clear_cache();
 		vip_reset_db_query_log();
 		vip_reset_local_object_cache();
 		WPCOM_VIP_Cache_Manager::instance()->clear_queued_purge_urls();
