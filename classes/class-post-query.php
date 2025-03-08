@@ -459,8 +459,6 @@ final class Post_Query {
 	public function delete_posts_batch_by_ids( $ids_to_delete ): void {
 		global $wpdb;
 
-		$placeholders = implode( ',', array_fill( 0, count( $ids_to_delete ), '%d' ) );
-
 		$cached_posts = [];
 
 		$uncached_post_ids = array_filter($ids_to_delete, function ($id) use (&$cached_posts) {
@@ -471,6 +469,8 @@ final class Post_Query {
 			}
 			return true;
 		});
+
+		$placeholders = implode( ',', array_fill( 0, count( $uncached_post_ids ), '%d' ) );
 
 		if ( empty( $uncached_post_ids ) ) {
 			$this->delete_posts_batch($cached_posts);
