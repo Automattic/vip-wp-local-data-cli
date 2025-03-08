@@ -18,6 +18,7 @@ use WP_Post;
  * Class Query_Args.
  */
 abstract class Query_Args {
+
 	/**
 	 * Whether or not the queried post type has linked IDs gathered via the
 	 * `get_linked_ids()` method.
@@ -75,7 +76,7 @@ abstract class Query_Args {
 	}
 
 	/**
-	 * Process dependent data associated with a given ID, such as a post's
+	 * Process dependent data associated with given IDs, such as a post's
 	 * thumbnail.
 	 *
 	 * If post type has no dependent data, set `static::$find_linked_ids` to
@@ -86,7 +87,7 @@ abstract class Query_Args {
 	 */
 	// Parameters are provided for implementing classes.
 	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-	public static function get_linked_ids( array $posts ): array {
+	public static function get_linked_ids( array $posts, Post_Query $post_query ): array {
 		return [];
 	}
 

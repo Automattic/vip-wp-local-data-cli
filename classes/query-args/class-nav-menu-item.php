@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace PMC\WP_Local_Data_CLI\Query_Args;
 
+use PMC\WP_Local_Data_CLI\Post_Query;
 use PMC\WP_Local_Data_CLI\Query_Args;
 
 /**
@@ -27,36 +28,34 @@ final class Nav_Menu_Item extends Query_Args {
 	}
 
 	/**
-	 * Process dependent data associated with a given ID, such as a post's
-	 * thumbnail.
+	 * @param \WP_Post[] $posts
+	 * @param Post_Query $post_query
 	 *
-	 * If post type has no dependent data, set `static::$find_linked_ids` to
-	 * false to skip this method.
-	 *
-	 * @param int    $id Post ID.
-	 * @param string $post_type Post type of given ID.
-	 * @return array
+	 * @return array|\WP_Post[]
 	 */
-	// Declaration must be compatible with overridden method.
-	// phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundInExtendedClassAfterLastUsed, Squiz.Commenting.FunctionComment.Missing, VariableAnalysis.CodeAnalysis.VariableAnalysis.UnusedVariable
-//	public static function get_linked_ids( int $id, string $post_type ): array {
-//		$ids = [];
-//
-//		$menu_item_type = get_post_meta( $id, '_menu_item_type', true );
-//
-//		if ( 'post_type' !== $menu_item_type ) {
-//			return $ids;
-//		}
-//
-//		$ids[] = [
-//			'ID'        => (int) get_post_meta(
-//				$id,
-//				'_menu_item_object_id',
-//				true
-//			),
-//			'post_type' => get_post_type( $id ),
-//		];
-//
-//		return $ids;
-//	}
+	public static function get_linked_ids( $posts, $post_query ): array {
+
+		$post_id_to_menu_item_type = $post_query->get_posts_meta($posts, '_menu_item_type');
+
+		$ids_to_process = array_filter(
+			$post_id_to_menu_item_type,
+			static function ( $menu_item_type ) {
+				return 'post_type' === $menu_item_type;
+			}
+		);
+
+		$posts_to_process = $post_query->get_posts( $ids_to_process );
+
+		$post_id_to_menu_item_object_id = $post_query->get_posts_meta($posts_to_process, '_menu_item_object_id');
+
+		$menu_item_object_ids_to_process = array_filter(
+			$post_id_to_menu_item_object_id,
+			static function ( $menu_item_object_id ) {
+				return ! empty( $menu_item_object_id );
+			}
+		);
+
+		// yep they're posts.
+		return $post_query->get_posts( $menu_item_object_ids_to_process );
+	}
 }

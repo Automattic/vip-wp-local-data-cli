@@ -387,6 +387,43 @@ final class Post_Query {
 	}
 
 	/**
+	 * @param array $posts
+	 * @param $meta_key
+	 *
+	 * @return (string|null)[] Post ID to its meta key value
+	 */
+	public function get_posts_meta( array $posts, $meta_key): array {
+		$ids = array_map(
+			function ( $post ) {
+				return $post->ID;
+			},
+			$posts
+		);
+
+		if ( empty( $ids ) ) {
+			return [];
+		}
+
+		global $wpdb;
+
+		$placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+
+		$query = $wpdb->prepare(
+			"SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE post_id IN ($placeholders) AND meta_key = %s",
+			array_merge( $ids, [ $meta_key ] )
+		);
+
+		return array_reduce(
+			$wpdb->get_results( $query ),
+			function ( $carry, $row ) {
+				$carry[ $row->post_id ] = maybe_unserialize($row->meta_value);
+				return $carry;
+			},
+			[]
+		);
+	}
+
+	/**
 	 * @param $ids
 	 *
 	 * @return WP_Post[]
