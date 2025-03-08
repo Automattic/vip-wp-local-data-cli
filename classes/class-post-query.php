@@ -442,6 +442,10 @@ final class Post_Query {
 			return true;
 		});
 
+		if (empty($uncached_post_ids)) {
+			return $cached_posts;
+		}
+
 		$placeholders = implode( ',', array_fill( 0, count( $uncached_post_ids ), '%d' ) );
 
 		$uncached_post_rows = $wpdb->get_results( $wpdb->prepare(
